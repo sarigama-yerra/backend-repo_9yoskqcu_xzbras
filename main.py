@@ -1,8 +1,13 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List, Optional
 
-app = FastAPI()
+from schemas import QuoteRequest
+from database import create_document
+
+app = FastAPI(title="Eastside Insurance Brokers API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -12,9 +17,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class QuoteResponse(BaseModel):
+    id: str
+    message: str
+
 @app.get("/")
 def read_root():
-    return {"message": "Hello from FastAPI Backend!"}
+    return {"message": "Eastside Insurance Brokers API is running"}
+
+@app.get("/api/insurance-types", response_model=List[str])
+def get_insurance_types():
+    return [
+        "Car Insurance",
+        "Householders Insurance",
+        "Building Insurance",
+        "Contractors All Risk",
+        "Performance Guarantee",
+        "Personal Liability",
+        "Business Insurance",
+        "Workmanship Compensation",
+        "Life Cover",
+        "Disability Cover",
+        "Critical Illness Cover",
+        "Income Protection",
+        "Funeral Cover",
+        "Investment Planning",
+        "Retirement Annuities",
+        "Portfolio Management",
+    ]
+
+@app.post("/api/quotes", response_model=QuoteResponse)
+def create_quote(request: QuoteRequest):
+    try:
+        inserted_id = create_document("quoterequest", request)
+        return {"id": inserted_id, "message": "Thank you! Your request was submitted successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to submit quote request: {str(e)}")
 
 @app.get("/api/hello")
 def hello():
